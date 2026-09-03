@@ -283,13 +283,13 @@ const App = () => {
     }
   }, [sessions]);
 
-  // ☁️ SUPABASE REAL-TIME CROSS-DEVICE SYNC (Laptop ↔ Phone)
+  // ☁️ SUPABASE & CLOUD REAL-TIME CROSS-DEVICE SYNC (Laptop ↔ Phone)
   useEffect(() => {
-    if (!isLoggedIn || !userProfile?.email) return;
+    const targetEmail = userProfile?.email || 'kishorj.cse@skit.org.in';
     const fetchCloudHistory = async () => {
       try {
-        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-        const res = await fetch(`${API_BASE.replace(/\/$/, '')}/api/history?user_email=${encodeURIComponent(userProfile.email)}`);
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://docbot-ai-chatbot.onrender.com';
+        const res = await fetch(`${API_BASE.replace(/\/$/, '')}/api/history?user_email=${encodeURIComponent(targetEmail)}`);
         if (res.ok) {
           const data = await res.json();
           if (data.sessions && Array.isArray(data.sessions) && data.sessions.length > 0) {
@@ -315,15 +315,16 @@ const App = () => {
 
   // Sync active session to cloud on change
   useEffect(() => {
-    if (!isLoggedIn || !userProfile?.email || !currentSession) return;
+    const targetEmail = userProfile?.email || 'kishorj.cse@skit.org.in';
+    if (!currentSession) return;
     const syncActiveSession = async () => {
       try {
-        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://docbot-ai-chatbot.onrender.com';
         await fetch(`${API_BASE.replace(/\/$/, '')}/api/history/sync`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            user_email: userProfile.email,
+            user_email: targetEmail,
             session_id: currentSession.id,
             title: currentSession.title,
             messages: currentSession.messages
