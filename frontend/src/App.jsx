@@ -198,6 +198,7 @@ const App = () => {
     } catch (err) {
       console.error('Google OAuth error:', err);
       setIsAuthenticating(false);
+      alert("⚠️ Google Provider is not enabled in your Supabase Dashboard yet.\n\nTo enable Google Sign-In:\n1. Open https://supabase.com/dashboard -> Project ppzdnxmglhwnbcilvueq\n2. Go to Authentication -> Providers -> Google\n3. Toggle Google to Enabled and enter your Client ID / Secret.");
     }
   };
 
