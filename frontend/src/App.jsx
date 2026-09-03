@@ -285,25 +285,35 @@ const App = () => {
 
   // ☁️ SUPABASE & CLOUD REAL-TIME CROSS-DEVICE SYNC (Laptop ↔ Phone)
   useEffect(() => {
-    const targetEmail = userProfile?.email || 'kishorj.cse@skit.org.in';
+    if (!userProfile?.email) return;
     const fetchCloudHistory = async () => {
       try {
         const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://docbot-ai-chatbot.onrender.com';
-        const res = await fetch(`${API_BASE.replace(/\/$/, '')}/api/history?user_email=${encodeURIComponent(targetEmail)}`);
+        const res = await fetch(`${API_BASE.replace(/\/$/, '')}/api/history?user_email=${encodeURIComponent(userProfile.email)}`);
         if (res.ok) {
           const data = await res.json();
           if (data.sessions && Array.isArray(data.sessions) && data.sessions.length > 0) {
             const cloudSessions = data.sessions.map((s) => ({
               id: s.session_id,
-              title: s.title || 'Chat Session',
+              title: s.title || 'New Chat Session',
               messages: s.messages || [],
               fileNames: [],
               updatedAt: s.updated_at ? new Date(s.updated_at).getTime() : Date.now()
             }));
             setSessions(cloudSessions);
-            if (cloudSessions.length > 0) {
-              setCurrentSessionId(cloudSessions[0].id);
-            }
+            setCurrentSessionId(cloudSessions[0].id);
+          } else {
+            // New account or account with no sessions: Reset to clean empty session for this user!
+            const freshId = 'session_' + Date.now();
+            const freshSession = [{
+              id: freshId,
+              title: 'New Chat Session',
+              messages: [],
+              fileNames: [],
+              updatedAt: Date.now()
+            }];
+            setSessions(freshSession);
+            setCurrentSessionId(freshId);
           }
         }
       } catch (e) {
@@ -313,10 +323,9 @@ const App = () => {
     fetchCloudHistory();
   }, [isLoggedIn, userProfile?.email]);
 
-  // Sync active session to cloud on change
+  // Sync active session to cloud on change (only if messages exist!)
   useEffect(() => {
-    const targetEmail = userProfile?.email || 'kishorj.cse@skit.org.in';
-    if (!currentSession) return;
+    if (!userProfile?.email || !currentSession || !currentSession.messages || currentSession.messages.length === 0) return;
     const syncActiveSession = async () => {
       try {
         const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://docbot-ai-chatbot.onrender.com';
@@ -324,7 +333,7 @@ const App = () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            user_email: targetEmail,
+            user_email: userProfile.email,
             session_id: currentSession.id,
             title: currentSession.title,
             messages: currentSession.messages
