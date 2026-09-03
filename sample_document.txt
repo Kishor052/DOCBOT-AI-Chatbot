@@ -1,0 +1,11 @@
+DocsBot AI Project Executive Brief
+----------------------------------------
+DocsBot is an enterprise-grade AI Document Intelligence Platform built by senior engineers.
+
+Key Features:
+1. Multi-Format RAG: Supports PDF, DOCX, TXT, and ZIP archives with vector similarity search.
+2. Persisted Session Context: Extracted document memory is retained across follow-up questions within the session.
+3. Flexible API Authentication: Integrates dynamic client-side Groq and OpenAI key management with server fallback.
+4. Voice & Interactive UI: Supports audio input, split-screen canvas viewing, and HTML report exporting.
+
+Project Objective: Provide seamless document QA across all devices including mobile and desktop.

@@ -187,12 +187,7 @@ async def upload_documents(
 
             logger.warning(f"API Error ({err_str}). Retrying with resilient active model fallback chain...")
             
-            fallback_models = ["gpt-4o-mini", "gpt-3.5-turbo"] if is_openai_key else [
-                "llama-3.3-70b-versatile",
-                "llama-3.1-8b-instant",
-                "llama-3.2-11b-vision-instruct",
-                "llama-3.2-3b-preview"
-            ]
+            fallback_models = ["gpt-4o-mini", "gpt-3.5-turbo"] if is_openai_key else ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
             fallback_base = "https://api.openai.com/v1" if is_openai_key else "https://api.groq.com/openai/v1"
 
             compressed_text = extracted_text[:1800] if len(extracted_text) > 1800 else extracted_text
