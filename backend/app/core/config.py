@@ -16,6 +16,10 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "llama-3.1-8b-instant")
 OPENAI_API_BASE = os.getenv("OPENAI_API_BASE", "https://api.groq.com/openai/v1")
 VECTOR_DB_PATH = os.getenv("VECTOR_DB_PATH", str(BASE_DIR / "storage" / "vector_db"))
 
+# Supabase Credentials
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://ppzdnxmglhwnbcilvueq.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "sb_publishable_emFs80qw6NitAinWCu3Ceg_cLkzLZTQ")
+
 # FastAPI settings
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))

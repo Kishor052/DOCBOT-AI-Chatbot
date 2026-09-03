@@ -7,8 +7,10 @@ from fastapi import APIRouter
 from .endpoints.upload import router as upload_router
 from .endpoints.status import router as status_router
 from .endpoints.rag import router as rag_router
+from .endpoints.history import router as history_router
 
 router = APIRouter()
 router.include_router(upload_router, prefix="/api")
 router.include_router(status_router, prefix="/api")
 router.include_router(rag_router, prefix="/api")
+router.include_router(history_router, prefix="/api")
