@@ -162,12 +162,21 @@ async def upload_documents(
             response = await asyncio.to_thread(llm.invoke, messages)
         except Exception as api_err:
             err_str = str(api_err)
+            if "invalid_api_key" in err_str.lower() or "invalid api key" in err_str.lower() or "401" in err_str:
+                logger.error("API Key authentication error detected.")
+                return {
+                    "job_id": job_id,
+                    "message": "Authentication failed.",
+                    "error": "⚠️ Invalid API Key. Please verify your Groq or OpenAI API key in your environment settings.",
+                    "translation": "⚠️ **Invalid API Key Detected.**\n\nPlease check your Groq or OpenAI API key and try again."
+                }
+
             logger.warning(f"API Error ({err_str}). Retrying with smart model fallback...")
             if is_openai_key:
                 fallback_model = "gpt-3.5-turbo"
                 fallback_base = "https://api.openai.com/v1"
             else:
-                fallback_model = "mixtral-8x7b-32768"
+                fallback_model = "gemma2-9b-it"
                 fallback_base = "https://api.groq.com/openai/v1"
 
             compressed_text = extracted_text[:1800] if len(extracted_text) > 1800 else extracted_text
