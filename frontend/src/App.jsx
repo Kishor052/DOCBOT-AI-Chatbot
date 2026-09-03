@@ -707,15 +707,15 @@ const App = () => {
       // Fast Token Streaming Reader
       streamBotResponse(rawResponseText, updatedMessages, currentFiles);
     } catch (err) {
-      console.error('API Error:', err);
+      console.error('Detailed API Processing Error:', err);
       setLoading(false);
-      const errorMessage = err.message || 'Could not connect to FastAPI server. Ensure backend is running on port 8000.';
-      setError(errorMessage);
+      const userFriendlyMsg = '⚠️ **An error occurred while processing your request.**\n\nPlease check your documents and connection, then try again.';
+      setError(userFriendlyMsg);
       const errorResponse = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
         isError: true,
-        text: `⚠️ **Processing Error:** ${errorMessage}\n\nPlease verify that your files are valid and backend is active.`,
+        text: userFriendlyMsg,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       updateCurrentSessionMessages([...updatedMessages, errorResponse], currentFiles);
