@@ -172,17 +172,24 @@ async def upload_documents(
             HumanMessage(content=user_content)
         ]
 
+        def is_auth_error(e_msg: str) -> bool:
+            s = e_msg.lower()
+            return any(k in s for k in [
+                "invalid_api_key", "invalid api key", "401", "403", 
+                "do not have access to it", "model_not_found", "forbidden", "permission_denied"
+            ])
+
         try:
             response = await asyncio.to_thread(llm.invoke, messages)
         except Exception as api_err:
             err_str = str(api_err)
-            if "invalid_api_key" in err_str.lower() or "invalid api key" in err_str.lower() or "401" in err_str:
-                logger.error("API Key authentication error detected.")
+            if is_auth_error(err_str):
+                logger.error(f"API Key auth/permission error detected: {err_str}")
                 return {
                     "job_id": job_id,
                     "message": "Authentication failed.",
-                    "error": "⚠️ Invalid API Key. Please click the 🔑 API Key button in the top header to enter your Groq or OpenAI key.",
-                    "translation": "⚠️ **Invalid API Key Detected.**\n\nPlease click the **🔑 API Key** button in the top header bar to configure your Groq (`gsk_...`) or OpenAI (`sk-...`) API key."
+                    "error": "⚠️ Invalid or Restricted API Key. Please click the 🔑 API Key button in the top header to enter a valid Groq key.",
+                    "translation": "⚠️ **Invalid or Restricted API Key Detected.**\n\nYour key returned an access error (`403 Forbidden` / `404 Access Denied`). Please click the **🔑 API Key** button in the top header bar to enter a valid Groq (`gsk_...`) or OpenAI (`sk-...`) key from **console.groq.com/keys**."
                 }
 
             logger.warning(f"API Error ({err_str}). Retrying with resilient active model fallback chain...")
@@ -213,13 +220,12 @@ async def upload_documents(
                     if response and response.content:
                         break
                 except Exception as fb_err:
-                    fb_err_str = str(fb_err).lower()
-                    if "invalid_api_key" in fb_err_str or "invalid api key" in fb_err_str or "401" in fb_err_str:
+                    if is_auth_error(str(fb_err)):
                         return {
                             "job_id": job_id,
                             "message": "Authentication failed.",
-                            "error": "⚠️ Invalid API Key. Please click the 🔑 API Key button in the top header to enter your Groq or OpenAI key.",
-                            "translation": "⚠️ **Invalid API Key Detected.**\n\nPlease click the **🔑 API Key** button in the top header bar to configure your Groq (`gsk_...`) or OpenAI (`sk-...`) API key."
+                            "error": "⚠️ Invalid or Restricted API Key. Please click the 🔑 API Key button in the top header to enter a valid Groq key.",
+                            "translation": "⚠️ **Invalid or Restricted API Key Detected.**\n\nYour key returned an access error (`403 Forbidden` / `404 Access Denied`). Please click the **🔑 API Key** button in the top header bar to enter a valid Groq (`gsk_...`) or OpenAI (`sk-...`) key from **console.groq.com/keys**."
                         }
                     last_fallback_err = fb_err
                     logger.warning(f"Fallback model {fb_model} failed: {fb_err}")
