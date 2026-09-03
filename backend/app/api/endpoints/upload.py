@@ -118,17 +118,15 @@ async def upload_documents(
 
     try:
         # Smart Model & Provider Auto-Detector (OpenAI vs Groq)
-        base_url = OPENAI_API_BASE
-        if api_key.startswith("sk-") and "groq" not in api_key:
-            # Native OpenAI API Key
+        base_url = OPENAI_API_BASE or "https://api.groq.com/openai/v1"
+        is_openai_key = api_key.startswith("sk-") and "groq" not in api_key
+
+        if is_openai_key:
             base_url = "https://api.openai.com/v1"
             model_name = "gpt-4o-mini"
-        elif api_key.startswith("gsk_"):
-            # Groq Cloud API Key
-            base_url = "https://api.groq.com/openai/v1"
-            model_name = OPENAI_MODEL if (OPENAI_MODEL and "gpt" not in OPENAI_MODEL and "compound" not in OPENAI_MODEL) else "llama-3.3-70b-versatile"
         else:
-            model_name = OPENAI_MODEL or "llama-3.3-70b-versatile"
+            base_url = "https://api.groq.com/openai/v1"
+            model_name = "llama-3.3-70b-versatile"
 
         llm = ChatOpenAI(
             model=model_name,
@@ -165,8 +163,12 @@ async def upload_documents(
         except Exception as api_err:
             err_str = str(api_err)
             logger.warning(f"API Error ({err_str}). Retrying with smart model fallback...")
-            fallback_model = "gpt-3.5-turbo" if api_key.startswith("sk-") else "llama-3.1-8b-instant"
-            fallback_base = "https://api.openai.com/v1" if api_key.startswith("sk-") else "https://api.groq.com/openai/v1"
+            if is_openai_key:
+                fallback_model = "gpt-3.5-turbo"
+                fallback_base = "https://api.openai.com/v1"
+            else:
+                fallback_model = "llama-3.1-8b-instant"
+                fallback_base = "https://api.groq.com/openai/v1"
 
             compressed_text = extracted_text[:1800] if len(extracted_text) > 1800 else extracted_text
             user_content_retry = f"Document Context:\n{compressed_text}\n\nQuestion/Task:\n{effective_prompt}" if compressed_text else f"Question/Task:\n{effective_prompt}"
