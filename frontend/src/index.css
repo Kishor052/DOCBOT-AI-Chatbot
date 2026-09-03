@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+@layer utilities {
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.6);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(51, 65, 85, 0.8);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(239, 68, 68, 0.6);
+  }
+}
+
+/* Markdown typography styles for rendered AI response */
+.prose-custom {
+  color: #e2e8f0;
+  line-height: 1.65;
+  font-size: 0.95rem;
+}
+
+.prose-custom p {
+  margin-bottom: 0.75rem;
+}
+
+.prose-custom p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-custom strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.prose-custom h1, .prose-custom h2, .prose-custom h3, .prose-custom h4 {
+  color: #f8fafc;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-custom h1 { font-size: 1.4rem; }
+.prose-custom h2 { font-size: 1.2rem; }
+.prose-custom h3 { font-size: 1.05rem; }
+
+.prose-custom ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-custom ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-custom li {
+  margin-bottom: 0.25rem;
+}
+
+.prose-custom table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  background-color: rgba(15, 23, 42, 0.7);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(51, 65, 85, 0.8);
+}
+
+.prose-custom th {
+  background-color: rgba(30, 41, 59, 0.9);
+  color: #f8fafc;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.8);
+}
+
+.prose-custom td {
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+  color: #cbd5e1;
+}
+
+.prose-custom tr:last-child td {
+  border-bottom: none;
+}
+
+.prose-custom tr:hover td {
+  background-color: rgba(30, 41, 59, 0.4);
+}
+
+.prose-custom code {
+  background-color: rgba(30, 41, 59, 0.8);
+  color: #f43f5e;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85em;
+}
+
+.prose-custom pre {
+  background-color: #020617;
+  border: 1px solid rgba(51, 65, 85, 0.8);
+  border-radius: 0.5rem;
+  padding: 0.875rem;
+  overflow-x: auto;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-custom pre code {
+  background-color: transparent;
+  color: #e2e8f0;
+  padding: 0;
+}
+
+.prose-custom blockquote {
+  border-left: 3px solid #ef4444;
+  padding-left: 0.875rem;
+  color: #94a3b8;
+  font-style: italic;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
