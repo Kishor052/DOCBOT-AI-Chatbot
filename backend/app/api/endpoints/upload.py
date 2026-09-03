@@ -117,10 +117,10 @@ async def upload_documents(
         extracted_text = extracted_text[:MAX_INPUT_CHARS] + "\n\n[Content sampled for instant response. All documents fully indexed in background.]"
 
     try:
-        # Use OPENAI_MODEL from config or valid Groq models
-        model_name = OPENAI_MODEL or "llama-3.3-70b-versatile"
-        if "groq/compound" in model_name or "compound-mini" in model_name:
-            model_name = "llama-3.3-70b-versatile"
+        # Use OPENAI_MODEL from config or valid Groq model
+        model_name = OPENAI_MODEL or "llama-3.1-8b-instant"
+        if "groq/compound" in model_name or "compound-mini" in model_name or "3.3-70b" in model_name:
+            model_name = "llama-3.1-8b-instant"
 
         llm = ChatOpenAI(
             model=model_name,
@@ -156,11 +156,11 @@ async def upload_documents(
             response = await asyncio.to_thread(llm.invoke, messages)
         except Exception as api_err:
             err_str = str(api_err)
-            if "413" in err_str or "request_too_large" in err_str or "Request Entity Too Large" in err_str:
-                logger.warning(f"Payload too large. Retrying with compressed text context... Error: {err_str}")
-                # Fallback to llama-3.1-8b-instant with truncated text context
-                compressed_text = extracted_text[:1800] + "\n\n[Truncated for large document processing]"
-                user_content_retry = f"Document Context:\n{compressed_text}\n\nQuestion/Task:\n{effective_prompt}"
+            if "413" in err_str or "request_too_large" in err_str or "404" in err_str or "model_not_found" in err_str:
+                logger.warning(f"API Error ({err_str}). Retrying with fallback model (llama-3.1-8b-instant)...")
+                # Fallback to universally supported Groq model llama-3.1-8b-instant
+                compressed_text = extracted_text[:1800] if len(extracted_text) > 1800 else extracted_text
+                user_content_retry = f"Document Context:\n{compressed_text}\n\nQuestion/Task:\n{effective_prompt}" if compressed_text else f"Question/Task:\n{effective_prompt}"
                 messages_retry = [
                     SystemMessage(content=sys_prompt),
                     HumanMessage(content=user_content_retry)
