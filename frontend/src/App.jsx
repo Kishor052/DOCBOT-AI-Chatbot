@@ -231,10 +231,14 @@ const App = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Load sessions from localStorage
+  const userStorageKey = userProfile?.email 
+    ? `docbot_chat_history_${userProfile.email.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+    : 'docbot_chat_history_guest';
+
+  // Load sessions from user-specific localStorage
   const [sessions, setSessions] = useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(userStorageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -274,14 +278,40 @@ const App = () => {
   const currentSession = sessions.find((s) => s.id === currentSessionId) || sessions[0];
   const messages = currentSession ? currentSession.messages : [];
 
-  // Save sessions to localStorage whenever sessions change
+  // Reset & load sessions when userProfile email changes
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+      const saved = localStorage.getItem(userStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSessions(parsed);
+          setCurrentSessionId(parsed[0].id);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load account chat history:', e);
+    }
+    const freshId = 'session_' + Date.now();
+    setSessions([{
+      id: freshId,
+      title: 'New Chat Session',
+      messages: [],
+      fileNames: [],
+      updatedAt: Date.now()
+    }]);
+    setCurrentSessionId(freshId);
+  }, [userProfile?.email]);
+
+  // Save sessions to user-specific localStorage whenever sessions or userStorageKey change
+  useEffect(() => {
+    try {
+      localStorage.setItem(userStorageKey, JSON.stringify(sessions));
     } catch (e) {
       console.error('Failed to save chat history to localStorage:', e);
     }
-  }, [sessions]);
+  }, [sessions, userStorageKey]);
 
   // ☁️ SUPABASE & CLOUD REAL-TIME CROSS-DEVICE SYNC (Laptop ↔ Phone)
   useEffect(() => {
@@ -302,18 +332,6 @@ const App = () => {
             }));
             setSessions(cloudSessions);
             setCurrentSessionId(cloudSessions[0].id);
-          } else {
-            // New account or account with no sessions: Reset to clean empty session for this user!
-            const freshId = 'session_' + Date.now();
-            const freshSession = [{
-              id: freshId,
-              title: 'New Chat Session',
-              messages: [],
-              fileNames: [],
-              updatedAt: Date.now()
-            }];
-            setSessions(freshSession);
-            setCurrentSessionId(freshId);
           }
         }
       } catch (e) {
