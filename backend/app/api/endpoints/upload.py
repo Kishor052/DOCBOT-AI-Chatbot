@@ -185,9 +185,14 @@ async def upload_documents(
                     "translation": "⚠️ **Invalid API Key Detected.**\n\nPlease click the **🔑 API Key** button in the top header bar to configure your Groq (`gsk_...`) or OpenAI (`sk-...`) API key."
                 }
 
-            logger.warning(f"API Error ({err_str}). Retrying with resilient multi-model fallback chain...")
+            logger.warning(f"API Error ({err_str}). Retrying with resilient active model fallback chain...")
             
-            fallback_models = ["gpt-4o-mini", "gpt-3.5-turbo"] if is_openai_key else ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192", "mixtral-8x7b-32768"]
+            fallback_models = ["gpt-4o-mini", "gpt-3.5-turbo"] if is_openai_key else [
+                "llama-3.3-70b-versatile",
+                "llama-3.1-8b-instant",
+                "llama-3.2-11b-vision-instruct",
+                "llama-3.2-3b-preview"
+            ]
             fallback_base = "https://api.openai.com/v1" if is_openai_key else "https://api.groq.com/openai/v1"
 
             compressed_text = extracted_text[:1800] if len(extracted_text) > 1800 else extracted_text
@@ -213,6 +218,14 @@ async def upload_documents(
                     if response and response.content:
                         break
                 except Exception as fb_err:
+                    fb_err_str = str(fb_err).lower()
+                    if "invalid_api_key" in fb_err_str or "invalid api key" in fb_err_str or "401" in fb_err_str:
+                        return {
+                            "job_id": job_id,
+                            "message": "Authentication failed.",
+                            "error": "⚠️ Invalid API Key. Please click the 🔑 API Key button in the top header to enter your Groq or OpenAI key.",
+                            "translation": "⚠️ **Invalid API Key Detected.**\n\nPlease click the **🔑 API Key** button in the top header bar to configure your Groq (`gsk_...`) or OpenAI (`sk-...`) API key."
+                        }
                     last_fallback_err = fb_err
                     logger.warning(f"Fallback model {fb_model} failed: {fb_err}")
 
