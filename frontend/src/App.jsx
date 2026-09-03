@@ -52,7 +52,8 @@ import {
   Bookmark,
   FileCheck,
   Sliders,
-  ExternalLink
+  ExternalLink,
+  Key
 } from 'lucide-react';
 
 const STORAGE_KEY = 'docbot_chat_history_v1';
@@ -128,6 +129,12 @@ const App = () => {
   // 🔗 FEATURE 5: SHAREABLE SESSION MODAL STATE
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [copiedShareLink, setCopiedShareLink] = useState(false);
+
+  // 🔐 USER API KEY CONFIGURATION STATE
+  const [userApiKey, setUserApiKey] = useState(() => {
+    return localStorage.getItem('docbot_custom_api_key') || '';
+  });
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
 
   const [userProfile, setUserProfile] = useState(() => {
     const saved = localStorage.getItem('docbot_user_profile');
@@ -833,6 +840,9 @@ const App = () => {
     if (currentSessionId) {
       formData.append('session_id', currentSessionId);
     }
+    if (userApiKey && userApiKey.trim()) {
+      formData.append('user_api_key', userApiKey.trim());
+    }
 
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
     const API_URL = `${API_BASE.replace(/\/$/, '')}/api/upload`;
@@ -846,6 +856,9 @@ const App = () => {
       const data = await response.json();
 
       if (!response.ok || data.error) {
+        if (data.error && (data.error.includes('API Key') || data.error.includes('invalid_api_key'))) {
+          setIsApiKeyModalOpen(true);
+        }
         throw new Error(data.error || 'Server error occurred while processing bulk documents.');
       }
 
@@ -856,7 +869,13 @@ const App = () => {
     } catch (err) {
       console.error('Detailed API Processing Error:', err);
       setLoading(false);
-      const userFriendlyMsg = '⚠️ **An error occurred while processing your request.**\n\nPlease check your documents and connection, then try again.';
+      const isAuthErr = err.message && (err.message.includes('API Key') || err.message.includes('invalid_api_key'));
+      if (isAuthErr) {
+        setIsApiKeyModalOpen(true);
+      }
+      const userFriendlyMsg = isAuthErr
+        ? '⚠️ **Invalid API Key Detected.**\n\nPlease click the **🔑 API Key** button in the top header bar to enter a valid Groq (`gsk_...`) or OpenAI (`sk-...`) key.'
+        : '⚠️ **An error occurred while processing your request.**\n\nPlease check your documents and connection, then try again.';
       setError(userFriendlyMsg);
       const errorResponse = {
         id: (Date.now() + 1).toString(),
@@ -1080,6 +1099,98 @@ const App = () => {
                 className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
               >
                 Close Citation Viewer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------------------- */}
+      {/* 🔐 CONFIGURE API KEY MODAL */}
+      {/* ---------------------------------------------------------------- */}
+      {isApiKeyModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="absolute inset-0" onClick={() => setIsApiKeyModalOpen(false)} />
+
+          <div className="relative z-10 w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-7 shadow-2xl space-y-5 text-slate-100 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-100">API Key Settings</h3>
+                  <p className="text-xs text-slate-400">Provide your Groq or OpenAI API Key</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsApiKeyModalOpen(false)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-2">
+                <label className="text-xs font-semibold text-slate-300 block">
+                  Groq API Key (`gsk_...`) or OpenAI Key (`sk-...`)
+                </label>
+                <input
+                  type="password"
+                  value={userApiKey}
+                  onChange={(e) => setUserApiKey(e.target.value)}
+                  placeholder="Paste gsk_... or sk-... here"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs font-mono focus:outline-none focus:border-amber-500"
+                />
+                <p className="text-[11px] text-slate-400">
+                  Saved securely in local browser storage for your account.
+                </p>
+              </div>
+
+              <div className="p-3 bg-blue-950/40 border border-blue-800/50 rounded-xl text-xs space-y-1 text-blue-200">
+                <p className="font-semibold flex items-center space-x-1.5">
+                  <span>💡 Need a free Groq API Key?</span>
+                </p>
+                <p className="text-[11px] text-blue-300/80">
+                  Generate a free key from Groq Console in 5 seconds:
+                </p>
+                <a
+                  href="https://console.groq.com/keys"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block pt-1 font-bold text-blue-400 hover:underline text-xs"
+                >
+                  🔗 Open console.groq.com/keys →
+                </a>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end space-x-3">
+              {userApiKey && (
+                <button
+                  onClick={() => {
+                    setUserApiKey('');
+                    localStorage.removeItem('docbot_custom_api_key');
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-red-400 text-xs font-semibold"
+                >
+                  Clear Key
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  if (userApiKey.trim()) {
+                    localStorage.setItem('docbot_custom_api_key', userApiKey.trim());
+                  } else {
+                    localStorage.removeItem('docbot_custom_api_key');
+                  }
+                  setIsApiKeyModalOpen(false);
+                  setError('');
+                }}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-bold shadow-lg shadow-amber-900/30"
+              >
+                Save & Activate Key
               </button>
             </div>
           </div>
@@ -1646,6 +1757,20 @@ const App = () => {
             >
               <Share2 className="w-3.5 h-3.5 text-rose-400" />
               <span className="hidden sm:inline">Share</span>
+            </button>
+
+            {/* 🔑 USER API KEY CONFIGURATION BUTTON */}
+            <button
+              onClick={() => setIsApiKeyModalOpen(true)}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border transition-all ${
+                userApiKey 
+                  ? 'bg-amber-950/80 border-amber-800 text-amber-400 font-semibold' 
+                  : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
+              }`}
+              title="Configure Groq / OpenAI API Key"
+            >
+              <Key className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">{userApiKey ? 'API Key Active' : 'API Key'}</span>
             </button>
 
             {/* 📤 Export Chat Session Button */}

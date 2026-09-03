@@ -38,6 +38,7 @@ async def upload_documents(
     files: Annotated[Optional[List[UploadFile]], File()] = None,
     prompt: Annotated[Optional[str], Form()] = "Summarize these documents",
     session_id: Annotated[Optional[str], Form()] = None,
+    user_api_key: Annotated[Optional[str], Form()] = None,
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """Ultra-fast upload & RAG endpoint with strict firewall guardrails."""
@@ -50,7 +51,7 @@ async def upload_documents(
         upload_list.extend(files)
 
     effective_prompt = prompt.strip() if (prompt and prompt.strip()) else "Summarize these documents."
-    api_key = OPENAI_API_KEY or os.getenv("GROQ_API_KEY")
+    api_key = (user_api_key and user_api_key.strip()) or os.getenv("GROQ_API_KEY") or OPENAI_API_KEY
 
     job_id = str(uuid.uuid4())
     doc_count = 0
@@ -180,8 +181,8 @@ async def upload_documents(
                 return {
                     "job_id": job_id,
                     "message": "Authentication failed.",
-                    "error": "⚠️ Invalid API Key. Please verify your Groq or OpenAI API key in your environment settings.",
-                    "translation": "⚠️ **Invalid API Key Detected.**\n\nPlease check your Groq or OpenAI API key and try again."
+                    "error": "⚠️ Invalid API Key. Please click the 🔑 API Key button in the top header to enter your Groq or OpenAI key.",
+                    "translation": "⚠️ **Invalid API Key Detected.**\n\nPlease click the **🔑 API Key** button in the top header bar to configure your Groq (`gsk_...`) or OpenAI (`sk-...`) API key."
                 }
 
             logger.warning(f"API Error ({err_str}). Retrying with smart model fallback...")
