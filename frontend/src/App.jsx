@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { supabase } from './lib/supabase';
 import {
   Bot,
   User,
@@ -140,6 +141,67 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem('docbot_is_logged_in', isLoggedIn ? 'true' : 'false');
   }, [isLoggedIn]);
+
+  // 🔐 SUPABASE REAL GOOGLE OAUTH AUTHENTICATION LISTENER
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const user = session.user;
+        const profile = {
+          name: user.user_metadata?.full_name || user.email.split('@')[0],
+          email: user.email,
+          avatar: (user.user_metadata?.full_name || user.email).substring(0, 2).toUpperCase(),
+          bg: 'from-blue-500 to-indigo-600'
+        };
+        setUserProfile(profile);
+        setIsLoggedIn(true);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const user = session.user;
+        const profile = {
+          name: user.user_metadata?.full_name || user.email.split('@')[0],
+          email: user.email,
+          avatar: (user.user_metadata?.full_name || user.email).substring(0, 2).toUpperCase(),
+          bg: 'from-blue-500 to-indigo-600'
+        };
+        setUserProfile(profile);
+        setIsLoggedIn(true);
+      } else if (_event === 'SIGNED_OUT') {
+        setIsLoggedIn(false);
+        setUserProfile(INITIAL_ACCOUNT);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleGoogleOAuthLogin = async () => {
+    try {
+      setIsAuthenticating(true);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.error('Google OAuth error:', err);
+      setIsAuthenticating(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {}
+    setIsLoggedIn(false);
+    setUserProfile(INITIAL_ACCOUNT);
+    setIsAccountCardOpen(false);
+  };
 
   useEffect(() => {
     localStorage.setItem('docbot_user_profile', JSON.stringify(userProfile));
@@ -486,12 +548,7 @@ const App = () => {
     setShowCustomInput(false);
   };
 
-  // 🚪 Authentic Gemini Sign-Out Handler
-  const handleSignOut = () => {
-    setIsLoggedIn(false);
-    setIsAccountCardOpen(false);
-    setGuestPromptCount(0);
-  };
+
 
   // Update current session's messages
   const updateCurrentSessionMessages = (newMessages, currentFiles = selectedFiles) => {
@@ -1015,7 +1072,21 @@ const App = () => {
                 <p className="text-xs font-semibold text-slate-300">Authenticating with Google...</p>
               </div>
             ) : (
-              <div className="space-y-2.5">
+              <div className="space-y-3">
+                <button
+                  onClick={handleGoogleOAuthLogin}
+                  className="w-full flex items-center justify-center space-x-3 py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-semibold transition-all text-sm shadow-md"
+                >
+                  <GoogleLogoSVG />
+                  <span>Continue with Google</span>
+                </button>
+
+                <div className="flex items-center space-x-3 my-2">
+                  <div className="flex-1 h-px bg-slate-800" />
+                  <span className="text-[10px] text-slate-500 uppercase font-semibold">Or Select Saved Account</span>
+                  <div className="flex-1 h-px bg-slate-800" />
+                </div>
+
                 <div className="space-y-2">
                   {savedAccounts.map((acc, idx) => (
                     <button
