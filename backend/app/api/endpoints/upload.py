@@ -138,12 +138,13 @@ async def upload_documents(
 
         def build_llm_instance(target_model: str = None):
             if is_gemini_key:
-                m_name = target_model or "gemini-1.5-flash"
-                return ChatGoogleGenerativeAI(
+                m_name = target_model or "gemini-3.6-flash"
+                return ChatOpenAI(
                     model=m_name,
-                    google_api_key=api_key,
+                    openai_api_key=api_key,
+                    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
                     temperature=0.0,
-                    max_output_tokens=1000,
+                    max_tokens=1000,
                 )
             elif is_openai_key:
                 m_name = target_model or "gpt-4o-mini"
@@ -211,7 +212,7 @@ async def upload_documents(
             logger.warning(f"API Error ({err_str}). Retrying with resilient active model fallback chain...")
             
             if is_gemini_key:
-                fallback_models = ["gemini-1.5-flash", "gemini-2.5-flash", "gemini-3.6-flash", "gemini-3.5-flash"]
+                fallback_models = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest"]
             elif is_openai_key:
                 fallback_models = ["gpt-4o-mini", "gpt-3.5-turbo"]
             else:
