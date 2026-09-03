@@ -8,6 +8,7 @@ from fastapi import APIRouter, File, UploadFile, Form, BackgroundTasks, HTTPExce
 from typing import List, Optional, Annotated, Dict
 from pathlib import Path
 from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.services.ingestion_service import ingest_files_sync
@@ -51,7 +52,7 @@ async def upload_documents(
         upload_list.extend(files)
 
     effective_prompt = prompt.strip() if (prompt and prompt.strip()) else "Summarize these documents."
-    api_key = (user_api_key and user_api_key.strip()) or os.getenv("GROQ_API_KEY") or OPENAI_API_KEY
+    api_key = (user_api_key and user_api_key.strip()) or os.getenv("GEMINI_API_KEY") or os.getenv("GROQ_API_KEY") or OPENAI_API_KEY
 
     job_id = str(uuid.uuid4())
     doc_count = 0
@@ -131,24 +132,39 @@ async def upload_documents(
         extracted_text = extracted_text[:MAX_INPUT_CHARS] + "\n\n[Content sampled for instant response. All documents fully indexed in background.]"
 
     try:
-        # Smart Model & Provider Auto-Detector (OpenAI vs Groq)
-        base_url = OPENAI_API_BASE or "https://api.groq.com/openai/v1"
-        is_openai_key = api_key.startswith("sk-") and "groq" not in api_key
+        # Smart Multi-Provider AI Auto-Detector (Google Gemini vs OpenAI vs Groq)
+        is_gemini_key = api_key.startswith("AIzaSy") or "gemini" in api_key.lower() or os.getenv("GEMINI_API_KEY")
+        is_openai_key = api_key.startswith("sk-") and not is_gemini_key and "groq" not in api_key.lower()
 
-        if is_openai_key:
-            base_url = "https://api.openai.com/v1"
-            model_name = "gpt-4o-mini"
-        else:
-            base_url = "https://api.groq.com/openai/v1"
-            model_name = "llama-3.3-70b-versatile"
+        def build_llm_instance(target_model: str = None):
+            if is_gemini_key:
+                m_name = target_model or "gemini-1.5-flash"
+                return ChatGoogleGenerativeAI(
+                    model=m_name,
+                    google_api_key=api_key,
+                    temperature=0.0,
+                    max_output_tokens=1000,
+                )
+            elif is_openai_key:
+                m_name = target_model or "gpt-4o-mini"
+                return ChatOpenAI(
+                    model=m_name,
+                    temperature=0.0,
+                    openai_api_key=api_key,
+                    base_url="https://api.openai.com/v1",
+                    max_tokens=1000,
+                )
+            else:
+                m_name = target_model or "llama-3.3-70b-versatile"
+                return ChatOpenAI(
+                    model=m_name,
+                    temperature=0.0,
+                    openai_api_key=api_key,
+                    base_url="https://api.groq.com/openai/v1",
+                    max_tokens=1000,
+                )
 
-        llm = ChatOpenAI(
-            model=model_name,
-            temperature=0.0,
-            openai_api_key=api_key,
-            base_url=base_url,
-            max_tokens=1000,
-        )
+        llm = build_llm_instance()
 
         sys_prompt = (
             "You are DocsBot, a strictly specialized AI document processing assistant. "
@@ -176,7 +192,7 @@ async def upload_documents(
             s = e_msg.lower()
             return any(k in s for k in [
                 "invalid_api_key", "invalid api key", "401", "403", 
-                "do not have access to it", "model_not_found", "forbidden", "permission_denied"
+                "do not have access to it", "model_not_found", "forbidden", "permission_denied", "api_key_invalid"
             ])
 
         try:
@@ -188,14 +204,18 @@ async def upload_documents(
                 return {
                     "job_id": job_id,
                     "message": "Authentication failed.",
-                    "error": "⚠️ Invalid or Restricted API Key. Please click the 🔑 API Key button in the top header to enter a valid Groq key.",
-                    "translation": "⚠️ **Invalid or Restricted API Key Detected.**\n\nYour key returned an access error (`403 Forbidden` / `404 Access Denied`). Please click the **🔑 API Key** button in the top header bar to enter a valid Groq (`gsk_...`) or OpenAI (`sk-...`) key from **console.groq.com/keys**."
+                    "error": "⚠️ Invalid or Restricted API Key. Please click the 🔑 API Key button in the top header to enter your Gemini, Groq, or OpenAI key.",
+                    "translation": "⚠️ **Invalid or Restricted API Key Detected.**\n\nYour key returned an access error (`403 Forbidden` / `404 Access Denied`). Please click the **🔑 API Key** button in the top header bar to enter a free **Google Gemini API Key (`AIzaSy...`)** from **[aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)**."
                 }
 
             logger.warning(f"API Error ({err_str}). Retrying with resilient active model fallback chain...")
             
-            fallback_models = ["gpt-4o-mini", "gpt-3.5-turbo"] if is_openai_key else ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
-            fallback_base = "https://api.openai.com/v1" if is_openai_key else "https://api.groq.com/openai/v1"
+            if is_gemini_key:
+                fallback_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"]
+            elif is_openai_key:
+                fallback_models = ["gpt-4o-mini", "gpt-3.5-turbo"]
+            else:
+                fallback_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
             compressed_text = extracted_text[:1800] if len(extracted_text) > 1800 else extracted_text
             user_content_retry = f"Document Context:\n{compressed_text}\n\nQuestion/Task:\n{effective_prompt}" if compressed_text else f"Question/Task:\n{effective_prompt}"
@@ -209,13 +229,7 @@ async def upload_documents(
 
             for fb_model in fallback_models:
                 try:
-                    llm_fallback = ChatOpenAI(
-                        model=fb_model,
-                        temperature=0.0,
-                        openai_api_key=api_key,
-                        base_url=fallback_base,
-                        max_tokens=800,
-                    )
+                    llm_fallback = build_llm_instance(target_model=fb_model)
                     response = await asyncio.to_thread(llm_fallback.invoke, messages_retry)
                     if response and response.content:
                         break
@@ -224,8 +238,8 @@ async def upload_documents(
                         return {
                             "job_id": job_id,
                             "message": "Authentication failed.",
-                            "error": "⚠️ Invalid or Restricted API Key. Please click the 🔑 API Key button in the top header to enter a valid Groq key.",
-                            "translation": "⚠️ **Invalid or Restricted API Key Detected.**\n\nYour key returned an access error (`403 Forbidden` / `404 Access Denied`). Please click the **🔑 API Key** button in the top header bar to enter a valid Groq (`gsk_...`) or OpenAI (`sk-...`) key from **console.groq.com/keys**."
+                            "error": "⚠️ Invalid or Restricted API Key. Please click the 🔑 API Key button in the top header to enter your Gemini, Groq, or OpenAI key.",
+                            "translation": "⚠️ **Invalid or Restricted API Key Detected.**\n\nYour key returned an access error (`403 Forbidden` / `404 Access Denied`). Please click the **🔑 API Key** button in the top header bar to enter a free **Google Gemini API Key (`AIzaSy...`)** from **[aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)**."
                         }
                     last_fallback_err = fb_err
                     logger.warning(f"Fallback model {fb_model} failed: {fb_err}")

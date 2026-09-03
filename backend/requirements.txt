@@ -15,3 +15,5 @@ pypdf
 PyPDF2
 python-docx
 docx2txt
+langchain-google-genai
+google-generativeai

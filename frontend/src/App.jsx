@@ -1120,7 +1120,7 @@ const App = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-100">API Key Settings</h3>
-                  <p className="text-xs text-slate-400">Provide your Groq or OpenAI API Key</p>
+                  <p className="text-xs text-slate-400">Provide Google Gemini, Groq, or OpenAI Key</p>
                 </div>
               </div>
               <button
@@ -1134,13 +1134,13 @@ const App = () => {
             <div className="space-y-4">
               <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-2">
                 <label className="text-xs font-semibold text-slate-300 block">
-                  Groq API Key (`gsk_...`) or OpenAI Key (`sk-...`)
+                  Google Gemini (`AIzaSy...`), Groq (`gsk_...`), or OpenAI (`sk-...`)
                 </label>
                 <input
                   type="password"
                   value={userApiKey}
                   onChange={(e) => setUserApiKey(e.target.value)}
-                  placeholder="Paste gsk_... or sk-... here"
+                  placeholder="Paste AIzaSy... or gsk_... here"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs font-mono focus:outline-none focus:border-amber-500"
                 />
                 <p className="text-[11px] text-slate-400">
@@ -1148,20 +1148,20 @@ const App = () => {
                 </p>
               </div>
 
-              <div className="p-3 bg-blue-950/40 border border-blue-800/50 rounded-xl text-xs space-y-1 text-blue-200">
+              <div className="p-3 bg-emerald-950/40 border border-emerald-800/50 rounded-xl text-xs space-y-1 text-emerald-200">
                 <p className="font-semibold flex items-center space-x-1.5">
-                  <span>💡 Need a free Groq API Key?</span>
+                  <span>🚀 Recommended: Free Google Gemini API Key</span>
                 </p>
-                <p className="text-[11px] text-blue-300/80">
-                  Generate a free key from Groq Console in 5 seconds:
+                <p className="text-[11px] text-emerald-300/80">
+                  Ultra-fast 1M token window, 100% free with zero deprecations:
                 </p>
                 <a
-                  href="https://console.groq.com/keys"
+                  href="https://aistudio.google.com/app/apikey"
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-block pt-1 font-bold text-blue-400 hover:underline text-xs"
+                  className="inline-block pt-1 font-bold text-emerald-400 hover:underline text-xs"
                 >
-                  🔗 Open console.groq.com/keys →
+                  🔗 Open Google AI Studio (aistudio.google.com) →
                 </a>
               </div>
             </div>
