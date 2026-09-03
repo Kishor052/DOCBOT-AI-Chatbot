@@ -28,12 +28,16 @@ ALLOWED_EXTENSIONS = SUPPORTED_EXTENSIONS | {".zip"}
 
 STRICT_FIREWALL_RESPONSE = "I am DocsBot. I can only process and answer questions related to your uploaded documents."
 
+# In-memory session text context cache (persists uploaded documents for follow-up prompts)
+SESSION_TEXT_CACHE: Dict[str, str] = {}
+
 @router.post("/upload")
 @router.post("/upload-and-translate/")
 async def upload_documents(
     file: Annotated[Optional[UploadFile], File()] = None,
     files: Annotated[Optional[List[UploadFile]], File()] = None,
     prompt: Annotated[Optional[str], Form()] = "Summarize these documents",
+    session_id: Annotated[Optional[str], Form()] = None,
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """Ultra-fast upload & RAG endpoint with strict firewall guardrails."""
@@ -85,22 +89,31 @@ async def upload_documents(
             loaded_docs = await asyncio.to_thread(load_documents, saved_paths, max_files=10)
             doc_count = len(loaded_docs)
             extracted_text = "\n\n".join([doc.page_content for doc in loaded_docs])
+
+            # 💾 Save session context for follow-up prompts without re-uploading
+            if session_id and extracted_text:
+                existing_cached = SESSION_TEXT_CACHE.get(session_id, "")
+                SESSION_TEXT_CACHE[session_id] = (existing_cached + "\n\n" + extracted_text).strip()
     else:
-        # No new files attached -> Retrieve relevant context from ChromaDB RAG store!
-        retrieved_chunks = await asyncio.to_thread(search_similar, effective_prompt, n_results=5)
-        if retrieved_chunks:
-            extracted_text = "\n\n--- Retrieved Vector DB Context ---\n\n" + "\n\n".join(retrieved_chunks)
-            doc_count = len(retrieved_chunks)
+        # No new files attached in this prompt -> Retrieve from Session Cache or Vector Store!
+        if session_id and session_id in SESSION_TEXT_CACHE and SESSION_TEXT_CACHE[session_id]:
+            extracted_text = SESSION_TEXT_CACHE[session_id]
+            doc_count = 1
         else:
-            # No files uploaded and vector store is empty -> Ask user to upload document first!
-            return {
-                "job_id": job_id,
-                "message": "No documents provided.",
-                "file_count": 0,
-                "doc_count": 0,
-                "execution_time_seconds": 0.01,
-                "translation": "⚠️ **Please upload a document or ZIP archive first before prompting.**\n\nDocsBot requires at least one document (PDF, DOCX, TXT, or ZIP archive) attached to analyze and answer your questions."
-            }
+            retrieved_chunks = await asyncio.to_thread(search_similar, effective_prompt, n_results=5)
+            if retrieved_chunks:
+                extracted_text = "\n\n--- Retrieved Vector DB Context ---\n\n" + "\n\n".join(retrieved_chunks)
+                doc_count = len(retrieved_chunks)
+            else:
+                # No files uploaded and vector store is empty -> Ask user to upload document first!
+                return {
+                    "job_id": job_id,
+                    "message": "No documents provided.",
+                    "file_count": 0,
+                    "doc_count": 0,
+                    "execution_time_seconds": 0.01,
+                    "translation": "⚠️ **Please upload a document or ZIP archive first before prompting.**\n\nDocsBot requires at least one document (PDF, DOCX, TXT, or ZIP archive) attached to analyze and answer your questions."
+                }
 
     if not api_key or api_key.strip() == "" or "your_" in api_key:
         return {

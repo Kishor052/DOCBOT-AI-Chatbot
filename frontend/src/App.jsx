@@ -797,8 +797,13 @@ const App = () => {
     updateCurrentSessionMessages(updatedMessages, currentFiles);
     setInputPrompt('');
 
-    // If NO files attached and session has no files attached -> Immediately notify user to upload document first!
-    const sessionHasFiles = currentSession && currentSession.fileNames && currentSession.fileNames.length > 0;
+    // Check if session has uploaded documents (either in current files, fileNames list, or previous user messages)
+    const sessionHasFiles = currentSession && (
+      (currentSession.fileNames && currentSession.fileNames.length > 0) ||
+      (currentSession.messages && currentSession.messages.some((m) => m.fileName || (m.sender === 'user' && m.fileName))) ||
+      currentFiles.length > 0
+    );
+
     if (currentFiles.length === 0 && !sessionHasFiles) {
       const uploadNotice = {
         id: (Date.now() + 1).toString(),
@@ -825,6 +830,9 @@ const App = () => {
       });
     }
     formData.append('prompt', currentPrompt);
+    if (currentSessionId) {
+      formData.append('session_id', currentSessionId);
+    }
 
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
     const API_URL = `${API_BASE.replace(/\/$/, '')}/api/upload`;
