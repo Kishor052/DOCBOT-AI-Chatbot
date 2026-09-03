@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://docbot-ai-chatbot.vercel.app/sitemap.xml
