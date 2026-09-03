@@ -11,3 +11,7 @@ python-dotenv
 openai
 boto3
 supabase
+pypdf
+PyPDF2
+python-docx
+docx2txt

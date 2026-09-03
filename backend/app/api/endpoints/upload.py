@@ -185,13 +185,10 @@ async def upload_documents(
                     "translation": "⚠️ **Invalid API Key Detected.**\n\nPlease click the **🔑 API Key** button in the top header bar to configure your Groq (`gsk_...`) or OpenAI (`sk-...`) API key."
                 }
 
-            logger.warning(f"API Error ({err_str}). Retrying with smart model fallback...")
-            if is_openai_key:
-                fallback_model = "gpt-4o-mini"
-                fallback_base = "https://api.openai.com/v1"
-            else:
-                fallback_model = "llama-3.3-70b-versatile"
-                fallback_base = "https://api.groq.com/openai/v1"
+            logger.warning(f"API Error ({err_str}). Retrying with resilient multi-model fallback chain...")
+            
+            fallback_models = ["gpt-4o-mini", "gpt-3.5-turbo"] if is_openai_key else ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192", "mixtral-8x7b-32768"]
+            fallback_base = "https://api.openai.com/v1" if is_openai_key else "https://api.groq.com/openai/v1"
 
             compressed_text = extracted_text[:1800] if len(extracted_text) > 1800 else extracted_text
             user_content_retry = f"Document Context:\n{compressed_text}\n\nQuestion/Task:\n{effective_prompt}" if compressed_text else f"Question/Task:\n{effective_prompt}"
@@ -199,14 +196,28 @@ async def upload_documents(
                 SystemMessage(content=sys_prompt),
                 HumanMessage(content=user_content_retry)
             ]
-            llm_fallback = ChatOpenAI(
-                model=fallback_model,
-                temperature=0.0,
-                openai_api_key=api_key,
-                base_url=fallback_base,
-                max_tokens=800,
-            )
-            response = await asyncio.to_thread(llm_fallback.invoke, messages_retry)
+
+            response = None
+            last_fallback_err = None
+
+            for fb_model in fallback_models:
+                try:
+                    llm_fallback = ChatOpenAI(
+                        model=fb_model,
+                        temperature=0.0,
+                        openai_api_key=api_key,
+                        base_url=fallback_base,
+                        max_tokens=800,
+                    )
+                    response = await asyncio.to_thread(llm_fallback.invoke, messages_retry)
+                    if response and response.content:
+                        break
+                except Exception as fb_err:
+                    last_fallback_err = fb_err
+                    logger.warning(f"Fallback model {fb_model} failed: {fb_err}")
+
+            if not response:
+                raise last_fallback_err or Exception("All available LLM models failed to process request.")
 
         t_total = time.time() - t_start
 

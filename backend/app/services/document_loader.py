@@ -94,15 +94,29 @@ def load_single_file(file_path: Path) -> List[Document]:
                         ))
                 doc.close()
             except Exception:
-                import pypdf
-                reader = pypdf.PdfReader(str(file_path))
-                for i, page in enumerate(reader.pages[:10]):
-                    text = page.extract_text() or ""
-                    if text.strip():
-                        docs.append(Document(
-                            page_content=text,
-                            metadata={"source": str(file_path), "filename": file_path.name, "page": i + 1}
-                        ))
+                try:
+                    import pypdf
+                    reader = pypdf.PdfReader(str(file_path))
+                    for i, page in enumerate(reader.pages[:10]):
+                        text = page.extract_text() or ""
+                        if text.strip():
+                            docs.append(Document(
+                                page_content=text,
+                                metadata={"source": str(file_path), "filename": file_path.name, "page": i + 1}
+                            ))
+                except Exception:
+                    try:
+                        import PyPDF2
+                        reader = PyPDF2.PdfReader(str(file_path))
+                        for i, page in enumerate(reader.pages[:10]):
+                            text = page.extract_text() or ""
+                            if text.strip():
+                                docs.append(Document(
+                                    page_content=text,
+                                    metadata={"source": str(file_path), "filename": file_path.name, "page": i + 1}
+                                ))
+                    except Exception as pdf_err:
+                        logger.warning(f"All PDF loaders failed for {file_path}: {pdf_err}")
 
         elif suffix in {".docx", ".doc"}:
             try:
