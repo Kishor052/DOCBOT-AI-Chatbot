@@ -173,10 +173,10 @@ async def upload_documents(
 
             logger.warning(f"API Error ({err_str}). Retrying with smart model fallback...")
             if is_openai_key:
-                fallback_model = "gpt-3.5-turbo"
+                fallback_model = "gpt-4o-mini"
                 fallback_base = "https://api.openai.com/v1"
             else:
-                fallback_model = "gemma2-9b-it"
+                fallback_model = "llama-3.3-70b-versatile"
                 fallback_base = "https://api.groq.com/openai/v1"
 
             compressed_text = extracted_text[:1800] if len(extracted_text) > 1800 else extracted_text
