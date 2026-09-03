@@ -90,8 +90,7 @@ class CloudDatabaseService:
                     "session_id": session_id,
                     "user_email": email_key,
                     "title": title,
-                    "messages": messages,
-                    "updated_at": "now()"
+                    "messages": messages
                 }
                 self.supabase.table("chat_history").upsert(payload, on_conflict="session_id").execute()
                 return True
@@ -107,7 +106,7 @@ class CloudDatabaseService:
         # 1. Try Supabase first
         if self.supabase:
             try:
-                res = self.supabase.table("chat_history").select("*").eq("user_email", email_key).order("updated_at", desc=True).execute()
+                res = self.supabase.table("chat_history").select("*").eq("user_email", email_key).order("id", desc=True).execute()
                 if res and hasattr(res, "data") and res.data:
                     return res.data
             except Exception as e:

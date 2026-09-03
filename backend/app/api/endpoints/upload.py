@@ -167,7 +167,7 @@ async def upload_documents(
                 fallback_model = "gpt-3.5-turbo"
                 fallback_base = "https://api.openai.com/v1"
             else:
-                fallback_model = "llama-3.1-8b-instant"
+                fallback_model = "mixtral-8x7b-32768"
                 fallback_base = "https://api.groq.com/openai/v1"
 
             compressed_text = extracted_text[:1800] if len(extracted_text) > 1800 else extracted_text
