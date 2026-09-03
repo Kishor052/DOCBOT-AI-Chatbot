@@ -1448,8 +1448,8 @@ const App = () => {
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-800/80 shrink-0">
           <div className="flex items-center space-x-3">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-red-600 to-rose-500 text-white shadow-lg shadow-red-900/30">
-              <Bot className="w-5 h-5" />
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-900/40">
+              <FileText className="w-5 h-5" />
             </div>
             <div>
               <h1 className="font-bold text-slate-100 text-lg tracking-tight leading-none">
@@ -1894,8 +1894,8 @@ const App = () => {
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center min-h-[65vh] text-center space-y-6 px-4 py-8">
                 <div className="relative">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-red-600 to-rose-500 flex items-center justify-center shadow-xl shadow-red-900/30 text-white">
-                    <Bot className="w-9 h-9" />
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-900/40 text-white">
+                    <FileText className="w-9 h-9" />
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-slate-950 flex items-center justify-center text-[10px] text-white font-bold">
                     ✓
