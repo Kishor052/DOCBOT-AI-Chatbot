@@ -5,7 +5,7 @@ import time
 import asyncio
 import logging
 from fastapi import APIRouter, File, UploadFile, Form, BackgroundTasks, HTTPException
-from typing import List, Optional, Annotated
+from typing import List, Optional, Annotated, Dict
 from pathlib import Path
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
