@@ -117,16 +117,24 @@ async def upload_documents(
         extracted_text = extracted_text[:MAX_INPUT_CHARS] + "\n\n[Content sampled for instant response. All documents fully indexed in background.]"
 
     try:
-        # Use OPENAI_MODEL from config or valid Groq model
-        model_name = OPENAI_MODEL or "llama-3.1-8b-instant"
-        if "groq/compound" in model_name or "compound-mini" in model_name or "3.3-70b" in model_name:
-            model_name = "llama-3.1-8b-instant"
+        # Smart Model & Provider Auto-Detector (OpenAI vs Groq)
+        base_url = OPENAI_API_BASE
+        if api_key.startswith("sk-") and "groq" not in api_key:
+            # Native OpenAI API Key
+            base_url = "https://api.openai.com/v1"
+            model_name = "gpt-4o-mini"
+        elif api_key.startswith("gsk_"):
+            # Groq Cloud API Key
+            base_url = "https://api.groq.com/openai/v1"
+            model_name = OPENAI_MODEL if (OPENAI_MODEL and "gpt" not in OPENAI_MODEL and "compound" not in OPENAI_MODEL) else "llama-3.3-70b-versatile"
+        else:
+            model_name = OPENAI_MODEL or "llama-3.3-70b-versatile"
 
         llm = ChatOpenAI(
             model=model_name,
             temperature=0.0,
             openai_api_key=api_key,
-            base_url=OPENAI_API_BASE,
+            base_url=base_url,
             max_tokens=1000,
         )
 
@@ -156,25 +164,24 @@ async def upload_documents(
             response = await asyncio.to_thread(llm.invoke, messages)
         except Exception as api_err:
             err_str = str(api_err)
-            if "413" in err_str or "request_too_large" in err_str or "404" in err_str or "model_not_found" in err_str:
-                logger.warning(f"API Error ({err_str}). Retrying with fallback model (llama-3.1-8b-instant)...")
-                # Fallback to universally supported Groq model llama-3.1-8b-instant
-                compressed_text = extracted_text[:1800] if len(extracted_text) > 1800 else extracted_text
-                user_content_retry = f"Document Context:\n{compressed_text}\n\nQuestion/Task:\n{effective_prompt}" if compressed_text else f"Question/Task:\n{effective_prompt}"
-                messages_retry = [
-                    SystemMessage(content=sys_prompt),
-                    HumanMessage(content=user_content_retry)
-                ]
-                llm_fallback = ChatOpenAI(
-                    model="llama-3.1-8b-instant",
-                    temperature=0.0,
-                    openai_api_key=api_key,
-                    base_url=OPENAI_API_BASE,
-                    max_tokens=800,
-                )
-                response = await asyncio.to_thread(llm_fallback.invoke, messages_retry)
-            else:
-                raise api_err
+            logger.warning(f"API Error ({err_str}). Retrying with smart model fallback...")
+            fallback_model = "gpt-4o-mini" if api_key.startswith("sk-") else "llama3-8b-8192"
+            fallback_base = "https://api.openai.com/v1" if api_key.startswith("sk-") else "https://api.groq.com/openai/v1"
+
+            compressed_text = extracted_text[:1800] if len(extracted_text) > 1800 else extracted_text
+            user_content_retry = f"Document Context:\n{compressed_text}\n\nQuestion/Task:\n{effective_prompt}" if compressed_text else f"Question/Task:\n{effective_prompt}"
+            messages_retry = [
+                SystemMessage(content=sys_prompt),
+                HumanMessage(content=user_content_retry)
+            ]
+            llm_fallback = ChatOpenAI(
+                model=fallback_model,
+                temperature=0.0,
+                openai_api_key=api_key,
+                base_url=fallback_base,
+                max_tokens=800,
+            )
+            response = await asyncio.to_thread(llm_fallback.invoke, messages_retry)
 
         t_total = time.time() - t_start
 
