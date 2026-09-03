@@ -687,7 +687,8 @@ const App = () => {
     }
     formData.append('prompt', currentPrompt);
 
-    const API_URL = 'http://localhost:8000/api/upload';
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+    const API_URL = `${API_BASE.replace(/\/$/, '')}/api/upload`;
 
     try {
       const response = await fetch(API_URL, {
