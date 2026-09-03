@@ -193,7 +193,8 @@ async def upload_documents(
             s = e_msg.lower()
             return any(k in s for k in [
                 "invalid_api_key", "invalid api key", "401", "403", 
-                "do not have access to it", "forbidden", "permission_denied", "api_key_invalid"
+                "do not have access to it", "forbidden", "permission_denied", "api_key_invalid",
+                "invalid auth key", "invalid auth", "invalid_argument"
             ])
 
         try:
