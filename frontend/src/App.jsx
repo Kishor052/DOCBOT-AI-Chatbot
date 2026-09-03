@@ -221,6 +221,60 @@ const App = () => {
     }
   }, [sessions]);
 
+  // ☁️ SUPABASE REAL-TIME CROSS-DEVICE SYNC (Laptop ↔ Phone)
+  useEffect(() => {
+    if (!isLoggedIn || !userProfile?.email) return;
+    const fetchCloudHistory = async () => {
+      try {
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        const res = await fetch(`${API_BASE.replace(/\/$/, '')}/api/history?user_email=${encodeURIComponent(userProfile.email)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.sessions && Array.isArray(data.sessions) && data.sessions.length > 0) {
+            const cloudSessions = data.sessions.map((s) => ({
+              id: s.session_id,
+              title: s.title || 'Chat Session',
+              messages: s.messages || [],
+              fileNames: [],
+              updatedAt: s.updated_at ? new Date(s.updated_at).getTime() : Date.now()
+            }));
+            setSessions(cloudSessions);
+            if (cloudSessions.length > 0) {
+              setCurrentSessionId(cloudSessions[0].id);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to sync cloud history on load:', e);
+      }
+    };
+    fetchCloudHistory();
+  }, [isLoggedIn, userProfile?.email]);
+
+  // Sync active session to cloud on change
+  useEffect(() => {
+    if (!isLoggedIn || !userProfile?.email || !currentSession) return;
+    const syncActiveSession = async () => {
+      try {
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        await fetch(`${API_BASE.replace(/\/$/, '')}/api/history/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_email: userProfile.email,
+            session_id: currentSession.id,
+            title: currentSession.title,
+            messages: currentSession.messages
+          })
+        });
+      } catch (e) {
+        console.error('Cloud session sync error:', e);
+      }
+    };
+    const timer = setTimeout(syncActiveSession, 1000);
+    return () => clearTimeout(timer);
+  }, [isLoggedIn, userProfile?.email, currentSession?.id, currentSession?.messages?.length, currentSession?.title]);
+
   // Auto-scroll to bottom of chat
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
