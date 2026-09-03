@@ -20,5 +20,5 @@ EXPOSE 8000
 # Environment variables (override via docker‑run or compose)
 ENV HOST=0.0.0.0 \
     PORT=8000
-# Run the server with uvicorn
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the server with uvicorn (evaluated dynamically for Render $PORT)
+CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
