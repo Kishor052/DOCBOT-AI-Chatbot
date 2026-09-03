@@ -133,7 +133,7 @@ async def upload_documents(
 
     try:
         # Smart Multi-Provider AI Auto-Detector (Google Gemini vs OpenAI vs Groq)
-        is_gemini_key = api_key.startswith("AIzaSy") or "gemini" in api_key.lower() or os.getenv("GEMINI_API_KEY")
+        is_gemini_key = api_key.startswith("AIzaSy") or api_key.startswith("AQ.") or "gemini" in api_key.lower() or (len(api_key) > 20 and not api_key.startswith("sk-") and not api_key.startswith("gsk_")) or bool(os.getenv("GEMINI_API_KEY"))
         is_openai_key = api_key.startswith("sk-") and not is_gemini_key and "groq" not in api_key.lower()
 
         def build_llm_instance(target_model: str = None):
@@ -192,7 +192,7 @@ async def upload_documents(
             s = e_msg.lower()
             return any(k in s for k in [
                 "invalid_api_key", "invalid api key", "401", "403", 
-                "do not have access to it", "model_not_found", "forbidden", "permission_denied", "api_key_invalid"
+                "do not have access to it", "forbidden", "permission_denied", "api_key_invalid"
             ])
 
         try:
@@ -205,13 +205,13 @@ async def upload_documents(
                     "job_id": job_id,
                     "message": "Authentication failed.",
                     "error": "⚠️ Invalid or Restricted API Key. Please click the 🔑 API Key button in the top header to enter your Gemini, Groq, or OpenAI key.",
-                    "translation": "⚠️ **Invalid or Restricted API Key Detected.**\n\nYour key returned an access error (`403 Forbidden` / `404 Access Denied`). Please click the **🔑 API Key** button in the top header bar to enter a free **Google Gemini API Key (`AIzaSy...`)** from **[aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)**."
+                    "translation": "⚠️ **Invalid or Restricted API Key Detected.**\n\nYour key returned an access error (`403 Forbidden` / `404 Access Denied`). Please click the **🔑 API Key** button in the top header bar to enter a free **Google Gemini API Key (`AIzaSy...` or `AQ...`)** from **[aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)**."
                 }
 
             logger.warning(f"API Error ({err_str}). Retrying with resilient active model fallback chain...")
             
             if is_gemini_key:
-                fallback_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"]
+                fallback_models = ["gemini-1.5-flash", "gemini-2.5-flash", "gemini-3.6-flash", "gemini-3.5-flash"]
             elif is_openai_key:
                 fallback_models = ["gpt-4o-mini", "gpt-3.5-turbo"]
             else:
