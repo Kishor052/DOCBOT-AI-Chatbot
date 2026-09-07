@@ -59,7 +59,7 @@ import {
 const STORAGE_KEY = 'docbot_chat_history_v1';
 const PINNED_STORAGE_KEY = 'docbot_pinned_highlights';
 
-const INITIAL_ACCOUNT = { name: 'kishorj cse', email: 'kishorj.cse@skit.org.in', avatar: 'KI', bg: 'from-purple-500 to-indigo-600' };
+const INITIAL_ACCOUNT = { name: 'Guest User', email: 'guest@docsbot.ai', avatar: 'GU', bg: 'from-blue-600 to-indigo-600' };
 
 const GoogleLogoSVG = () => (
   <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
@@ -90,7 +90,7 @@ const App = () => {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {}
     }
-    return [INITIAL_ACCOUNT];
+    return [];
   });
 
   const [isGooglePickerOpen, setIsGooglePickerOpen] = useState(false);
